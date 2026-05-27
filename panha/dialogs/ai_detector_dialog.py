@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
     QAbstractItemView,
     QDialog,
     QFileDialog,
+    QFrame,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -72,62 +73,80 @@ class AIDetectorDialog(QDialog):
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
-        root.setContentsMargins(18, 16, 18, 16)
-        root.setSpacing(12)
+        root.setContentsMargins(22, 20, 22, 20)
+        root.setSpacing(14)
 
         header = QHBoxLayout()
-        header.setSpacing(8)
+        header.setSpacing(12)
 
         title_block = QVBoxLayout()
         title_block.setSpacing(2)
         self.lbl_title = QLabel("AI Music Detector")
-        self.lbl_title.setObjectName("sectionTitle")
-        self.lbl_title.setStyleSheet(
-            "font-size:18px;font-weight:600;color:#5fa8ff;"
-        )
+        self.lbl_title.setObjectName("aiDetectorTitle")
         self.lbl_subtitle = QLabel(
             "Drop audio files \u2014 analyzes AI automatically"
         )
-        self.lbl_subtitle.setObjectName("fieldLabel")
-        self.lbl_subtitle.setStyleSheet("color:#8aa0c0;")
+        self.lbl_subtitle.setObjectName("aiDetectorSubtitle")
         title_block.addWidget(self.lbl_title)
         title_block.addWidget(self.lbl_subtitle)
         header.addLayout(title_block, 1)
 
         self.btn_close = QPushButton("Close")
-        self.btn_close.setObjectName("configActionBtn")
+        self.btn_close.setObjectName("aiDetectorClose")
+        self.btn_close.setMinimumWidth(96)
         self.btn_close.clicked.connect(self.close)
         header.addWidget(self.btn_close, 0, Qt.AlignmentFlag.AlignTop)
         root.addLayout(header)
 
+        self.header_divider = self._build_divider()
+        root.addWidget(self.header_divider)
+
         actions = QHBoxLayout()
-        actions.setSpacing(8)
+        actions.setSpacing(10)
         self.btn_add = QPushButton("Add Files")
-        self.btn_add.setObjectName("accentButton")
+        self.btn_add.setObjectName("aiDetectorPrimary")
+        self.btn_add.setMinimumWidth(108)
         self.btn_add.clicked.connect(self._on_add_files)
         self.btn_clear = QPushButton("Clear")
+        self.btn_clear.setObjectName("aiDetectorSecondary")
+        self.btn_clear.setMinimumWidth(96)
         self.btn_clear.clicked.connect(self._on_clear)
         actions.addWidget(self.btn_add)
         actions.addWidget(self.btn_clear)
         actions.addStretch(1)
         root.addLayout(actions)
 
+        self.table_divider = self._build_divider()
+        root.addWidget(self.table_divider)
+
         self.table = QTableWidget(0, 4)
+        self.table.setObjectName("aiDetectorTable")
         self.table.setHorizontalHeaderLabels(
             ["Filename", "Platform", "Confidence", "Human or AI"]
         )
         self.table.verticalHeader().setVisible(False)
+        self.table.setShowGrid(False)
         self.table.setSelectionBehavior(
             QAbstractItemView.SelectionBehavior.SelectRows
         )
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
         header_view = self.table.horizontalHeader()
+        header_view.setHighlightSections(False)
         header_view.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         header_view.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         header_view.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         header_view.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         root.addWidget(self.table, 1)
+
+    @staticmethod
+    def _build_divider() -> QFrame:
+        divider = QFrame()
+        divider.setObjectName("aiDetectorDivider")
+        divider.setFrameShape(QFrame.Shape.HLine)
+        divider.setFrameShadow(QFrame.Shadow.Plain)
+        divider.setFixedHeight(1)
+        return divider
 
     # -- public API ----------------------------------------------------
 
