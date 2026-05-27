@@ -209,3 +209,67 @@ def test_build_items_renames_and_strips_track_number(tmp_path: Path):
     # Title was empty in template, so it is auto-filled with the stem
     assert item.metadata.title == "SONG"
     assert item.metadata.artist == "A"
+
+
+def test_file_information_dialog_preserves_mastering_on_collect(qapp, tmp_path, monkeypatch):
+    """Regression: opening File Information and hitting Apply / Save As
+    used to silently overwrite the user's slider state with a default
+    MasteringSettings. The dialog must round-trip whatever mastering it
+    was constructed with.
+    """
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    state = FileInformationState(
+        metadata=Metadata(title="t"),
+        mastering=MasteringSettings(bass=80, mid=40, gain=12, bypass=False),
+    )
+    dlg = FileInformationDialog(state)
+    out = dlg.collect_state()
+    assert out.mastering.bass == 80
+    assert out.mastering.mid == 40
+    assert out.mastering.gain == 12
+    assert out.mastering.bypass is False
+
+
+def test_export_settings_dialog_disables_bit_depth_for_non_wav(qapp):
+    """Bit depth is only honoured for WAV exports; the combo must be
+    disabled when any other format is selected to avoid the impression
+    that the setting has an effect."""
+    dlg = ExportSettingsDialog(ExportSettings(format="MP3"))
+    assert dlg.cmb_bitdepth.isEnabled() is False
+    dlg.cmb_format.setCurrentText("WAV")
+    assert dlg.cmb_bitdepth.isEnabled() is True
+    dlg.cmb_format.setCurrentText("FLAC")
+    assert dlg.cmb_bitdepth.isEnabled() is False
+    dlg.deleteLater()
+
+
+def test_main_window_blocks_clear_during_export(qapp):
+    """Clear / Remove from the right-click menu must not silently destroy
+    queued rows while a batch is still being processed -- otherwise the
+    worker emits item_done with out-of-range indices."""
+    from unittest.mock import patch
+
+    win = MainWindow()
+    try:
+        # Inject a fake worker into the main window; we only care that
+        # _on_clear / _on_remove_selected take the early-return branch.
+        win._worker = object()
+        win._rows.append(type("R", (), {
+            "path": "x", "filename": "x.mp3",
+            "duration_seconds": 0.0, "file_type": "MP3",
+            "status": "Pending",
+        })())
+        win._refresh_table()
+
+        with patch(
+            "panha.main_window.QMessageBox.information"
+        ) as info:
+            win._on_clear()
+            win._on_remove_selected()
+        assert info.call_count == 2
+        # Rows must NOT have been wiped.
+        assert len(win._rows) == 1
+    finally:
+        win._worker = None
+        win.system_stats.stop()
+        win.close()

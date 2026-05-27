@@ -315,7 +315,9 @@ class MainWindow(QMainWindow):
                 self.table.setItem(row_idx, col, item)
         self._update_buttons()
 
-    def _update_row_status(self, idx: int, status: str) -> None:
+    def _update_row_status(
+        self, idx: int, status: str, *, tooltip: str = ""
+    ) -> None:
         if 0 <= idx < len(self._rows):
             self._rows[idx].status = status
             item = QTableWidgetItem(status)
@@ -325,6 +327,8 @@ class MainWindow(QMainWindow):
                 item.setForeground(Qt.GlobalColor.red)
             elif status == "Processing":
                 item.setForeground(Qt.GlobalColor.cyan)
+            if tooltip:
+                item.setToolTip(tooltip)
             self.table.setItem(idx, 3, item)
 
     def _add_paths(self, paths: list[str]) -> None:
@@ -436,7 +440,11 @@ class MainWindow(QMainWindow):
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
-        self._templates.delete(self._current_template_name)
+        try:
+            self._templates.delete(self._current_template_name)
+        except OSError as exc:
+            QMessageBox.warning(self, "Templates", f"Failed to delete: {exc}")
+            return
         self._current_template_name = ""
         self._refresh_template_combo()
 
@@ -526,6 +534,12 @@ class MainWindow(QMainWindow):
         self._add_paths(candidates)
 
     def _on_remove_selected(self) -> None:
+        if self._worker is not None:
+            QMessageBox.information(
+                self, "Export in progress",
+                "Stop the current export before removing rows.",
+            )
+            return
         rows = sorted(
             {idx.row() for idx in self.table.selectedIndexes()}, reverse=True
         )
@@ -535,6 +549,12 @@ class MainWindow(QMainWindow):
         self._refresh_table()
 
     def _on_clear(self) -> None:
+        if self._worker is not None:
+            QMessageBox.information(
+                self, "Export in progress",
+                "Stop the current export before clearing the queue.",
+            )
+            return
         self._rows.clear()
         self._refresh_table()
         self.progress.setValue(0)
@@ -544,9 +564,10 @@ class MainWindow(QMainWindow):
         dlg = FileInformationDialog(self._info_state, parent=self)
         if dlg.exec() == FileInformationDialog.DialogCode.Accepted:
             new_state = dlg.collect_state()
-            # Preserve mastering — the File Information dialog doesn't
-            # expose it, so we keep whatever the slider panel currently
-            # holds rather than letting the dialog reset it to default.
+            # The dialog now round-trips mastering via the state it was
+            # constructed with, but we re-apply the live slider panel
+            # state defensively in case the user moved sliders before
+            # opening the dialog and the panel is the source of truth.
             new_state.mastering = self.mastering_panel.settings()
             self._apply_state(new_state)
 
@@ -626,7 +647,12 @@ class MainWindow(QMainWindow):
         self._update_row_status(idx, status)
 
     def _on_item_failed(self, idx: int, message: str) -> None:
-        self._update_row_status(idx, f"Error: {message[:60]}")
+        # Truncate the inline status so it fits the column, but keep the
+        # full ffmpeg error on the cell tooltip so users can diagnose.
+        truncated = message if len(message) <= 60 else f"{message[:60]}\u2026"
+        self._update_row_status(
+            idx, f"Error: {truncated}", tooltip=message
+        )
 
     def _on_worker_finished(self) -> None:
         self._worker = None

@@ -32,6 +32,7 @@ class BatchItem:
     lufs_target_lufs: float | None = None
     codec_args_override: list[str] | None = None
     force_re_encode: bool = False
+    cover_max_size: tuple[int, int] | None = None
 
 
 class BatchWorker(QObject):
@@ -107,6 +108,7 @@ class BatchWorker(QObject):
                 lufs_target_lufs=item.lufs_target_lufs,
                 codec_args_override=item.codec_args_override,
                 force_re_encode=item.force_re_encode,
+                cover_max_size=item.cover_max_size,
             )
             self.item_done.emit(idx, "Done")
         except MetadataWriteCancelledError:
@@ -145,6 +147,13 @@ def build_items(
     lufs_target_lufs = export.parsed_lufs_target() if export is not None else None
     codec_args_override = (
         export.codec_args_override() if export is not None else None
+    )
+    # Cover-art resize honours the (width, height) configured in the
+    # File Information dialog. Zero / negative values disable resizing.
+    cover_w = state.tracklist.cover_size
+    cover_h = state.tracklist.cover_height
+    cover_max_size: tuple[int, int] | None = (
+        (cover_w, cover_h) if cover_w > 0 and cover_h > 0 else None
     )
 
     for src in sources:
@@ -191,6 +200,7 @@ def build_items(
                 list(codec_args_override) if codec_args_override else None
             ),
             force_re_encode=force_re_encode,
+            cover_max_size=cover_max_size,
         ))
     return items
 

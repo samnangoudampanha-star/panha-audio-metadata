@@ -295,3 +295,47 @@ def test_worker_sequential_when_max_threads_is_one(qapp, monkeypatch, tmp_path: 
     assert failed == []
     assert done == [(0, "Done"), (1, "Done"), (2, "Done")]
     assert progress == [(1, 3), (2, 3), (3, 3)]
+
+
+def test_build_items_threads_cover_max_size(tmp_path: Path):
+    """Regression: the Cover Size / Height spinboxes were silently ignored.
+    build_items must forward state.tracklist.cover_size/cover_height to
+    each BatchItem so write_metadata can scale the embedded cover.
+    """
+    from panha.dialogs.export_settings_dialog import ExportSettings
+    from panha.dialogs.file_info_dialog import (
+        FileInformationState,
+        TracklistOptions,
+    )
+    from panha.widgets.worker import build_items
+
+    src = tmp_path / "song.mp3"
+    src.write_bytes(b"")
+    state = FileInformationState(
+        metadata=Metadata(artist="A"),
+        tracklist=TracklistOptions(cover_size=800, cover_height=600),
+    )
+    items = build_items(
+        [str(src)], str(tmp_path / "out"), state, export=ExportSettings()
+    )
+    assert items[0].cover_max_size == (800, 600)
+
+
+def test_build_items_disables_cover_resize_when_size_zero(tmp_path: Path):
+    from panha.dialogs.export_settings_dialog import ExportSettings
+    from panha.dialogs.file_info_dialog import (
+        FileInformationState,
+        TracklistOptions,
+    )
+    from panha.widgets.worker import build_items
+
+    src = tmp_path / "song.mp3"
+    src.write_bytes(b"")
+    state = FileInformationState(
+        metadata=Metadata(),
+        tracklist=TracklistOptions(cover_size=0, cover_height=0),
+    )
+    items = build_items(
+        [str(src)], str(tmp_path / "out"), state, export=ExportSettings()
+    )
+    assert items[0].cover_max_size is None

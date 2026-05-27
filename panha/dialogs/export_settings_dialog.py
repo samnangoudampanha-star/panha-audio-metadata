@@ -131,10 +131,15 @@ class ExportSettingsDialog(QDialog):
         form.setVerticalSpacing(8)
         self.cmb_format = QComboBox()
         self.cmb_format.addItems(FORMATS)
+        self.cmb_format.currentTextChanged.connect(self._on_format_changed)
         self.cmb_sample = QComboBox()
         self.cmb_sample.addItems(SAMPLE_RATES)
         self.cmb_bitdepth = QComboBox()
         self.cmb_bitdepth.addItems(BIT_DEPTHS)
+        self.cmb_bitdepth.setToolTip(
+            "Bit depth applies to WAV exports only. For other formats the "
+            "codec's default sample format is used."
+        )
         self.spn_threads = QSpinBox()
         self.spn_threads.setRange(1, 32)
         self.spn_threads.setValue(4)
@@ -197,6 +202,11 @@ class ExportSettingsDialog(QDialog):
         self.chk_suno.setChecked(s.suno_bypass)
         self.chk_vocal.setChecked(s.vocal_clarity)
         self.chk_softclip.setChecked(s.soft_clip)
+        self._on_format_changed(self.cmb_format.currentText())
+
+    def _on_format_changed(self, fmt: str) -> None:
+        """Bit depth is meaningful only for WAV; gray it out otherwise."""
+        self.cmb_bitdepth.setEnabled(fmt.upper() == "WAV")
 
     def collect(self) -> ExportSettings:
         return ExportSettings(
