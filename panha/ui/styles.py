@@ -248,4 +248,88 @@ QToolTip {
     border: 1px solid #1f3a66;
     padding: 4px;
 }
+
+/* ------------------------------------------------------------------ */
+/* AI Music Detector dialog                                            */
+/* ------------------------------------------------------------------ */
+
+QLabel#aiDetectorTitle {
+    color: #5fa8ff;
+    font-size: 18px;
+    font-weight: 700;
+    padding: 0;
+}
+
+QLabel#aiDetectorSubtitle {
+    color: #8aa0c0;
+    font-size: 12px;
+    padding: 0;
+}
+
+QFrame#aiDetectorDivider {
+    background-color: #1f3a66;
+    border: none;
+    max-height: 1px;
+    min-height: 1px;
+}
+
+QPushButton#aiDetectorPrimary {
+    background-color: transparent;
+    border: 1px solid #5fa8ff;
+    border-radius: 4px;
+    padding: 7px 18px;
+    color: #5fa8ff;
+    font-weight: 600;
+}
+QPushButton#aiDetectorPrimary:hover {
+    background-color: rgba(95, 168, 255, 25);
+    border-color: #7ec0ff;
+    color: #ffffff;
+}
+QPushButton#aiDetectorPrimary:pressed {
+    background-color: rgba(95, 168, 255, 60);
+}
+
+QPushButton#aiDetectorSecondary,
+QPushButton#aiDetectorClose {
+    background-color: transparent;
+    border: 1px solid #2a4670;
+    border-radius: 4px;
+    padding: 7px 18px;
+    color: #c8d2e0;
+}
+QPushButton#aiDetectorSecondary:hover,
+QPushButton#aiDetectorClose:hover {
+    border-color: #5fa8ff;
+    color: #ffffff;
+}
+QPushButton#aiDetectorSecondary:pressed,
+QPushButton#aiDetectorClose:pressed {
+    background-color: #122a4d;
+}
+
+QTableWidget#aiDetectorTable {
+    background-color: #0a1426;
+    alternate-background-color: #0d1a32;
+    border: none;
+}
+QTableWidget#aiDetectorTable::item {
+    padding: 8px 10px;
+    border-bottom: 1px solid #15233f;
+}
+QTableWidget#aiDetectorTable QHeaderView {
+    background-color: #0a1426;
+}
+QTableWidget#aiDetectorTable QHeaderView::section {
+    background-color: #0a1426;
+    color: #5fa8ff;
+    padding: 10px 10px;
+    border: none;
+    border-bottom: 1px solid #1f3a66;
+    font-weight: 600;
+}
+QTableWidget#aiDetectorTable QTableCornerButton::section {
+    background-color: #0a1426;
+    border: none;
+}
 """
