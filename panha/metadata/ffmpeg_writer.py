@@ -187,6 +187,7 @@ def write_metadata(
     lufs_target_lufs: float | None = None,
     codec_args_override: list[str] | None = None,
     force_re_encode: bool = False,
+    cover_max_size: tuple[int, int] | None = None,
 ) -> str:
     """Write ``meta`` to ``src`` and save the result at ``dst``.
 
@@ -271,6 +272,14 @@ def write_metadata(
         cmd.extend(["-c:a", "copy"])
 
     if has_cover:
+        if cover_max_size is not None:
+            max_w, max_h = cover_max_size
+            if max_w > 0 and max_h > 0:
+                cmd.extend([
+                    "-filter:v:0",
+                    f"scale={int(max_w)}:{int(max_h)}"
+                    ":flags=lanczos:force_original_aspect_ratio=decrease",
+                ])
         cmd.extend([
             "-c:v", "mjpeg",
             "-disposition:v", "attached_pic",

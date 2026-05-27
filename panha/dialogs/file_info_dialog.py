@@ -315,10 +315,16 @@ class FileInformationDialog(QDialog):
             cover_size=int(self.spn_cover_size.value()),
             cover_height=int(self.spn_cover_height.value()),
         )
+        # The dialog does not expose mastering controls (the X-MIXM
+        # slider grid lives on the main window) so we propagate whatever
+        # mastering was supplied by the caller. Without this, opening
+        # the dialog and saving a template would silently overwrite the
+        # user's slider state with the dataclass default.
         return FileInformationState(
             enabled=self.chk_enable.isChecked(),
             metadata=meta,
             tracklist=tracklist,
+            mastering=dataclasses.replace(self._state.mastering),
             title=self._title_value,
             description=self._description_value,
         )

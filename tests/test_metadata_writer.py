@@ -341,6 +341,64 @@ def test_write_metadata_codec_args_override(
     assert streams[0]["codec_name"] == "pcm_s16le"
 
 
+def test_write_metadata_cover_max_size_emits_scale_filter(
+    sample_mp3: Path, sample_cover: Path, tmp_path: Path, monkeypatch
+):
+    """Regression: the File Information Cover Size / Height spinboxes
+    used to be silently ignored. When cover_max_size is provided, the
+    ffmpeg invocation must include a per-stream scale filter on the
+    cover input so the embedded artwork is actually resized.
+    """
+    captured: dict[str, list[str]] = {}
+    real_popen = subprocess.Popen
+
+    def capturing_popen(cmd, *args, **kwargs):
+        captured.setdefault("cmd", list(cmd))
+        return real_popen(cmd, *args, **kwargs)
+
+    from panha.metadata import ffmpeg_writer
+    monkeypatch.setattr(ffmpeg_writer.subprocess, "Popen", capturing_popen)
+
+    out = tmp_path / "scaled.mp3"
+    write_metadata(
+        sample_mp3, out,
+        Metadata(title="scaled", cover_path=str(sample_cover)),
+        cover_max_size=(320, 240),
+    )
+
+    cmd = captured["cmd"]
+    assert "-filter:v:0" in cmd, f"missing -filter:v:0 in {cmd}"
+    scale_arg = cmd[cmd.index("-filter:v:0") + 1]
+    assert scale_arg.startswith("scale=320:240")
+    assert "force_original_aspect_ratio=decrease" in scale_arg
+
+
+def test_write_metadata_no_scale_filter_when_cover_max_size_omitted(
+    sample_mp3: Path, sample_cover: Path, tmp_path: Path, monkeypatch
+):
+    """When cover_max_size is None we must not inject a video filter --
+    that's the historical zero-loss behavior callers rely on."""
+    captured: dict[str, list[str]] = {}
+    real_popen = subprocess.Popen
+
+    def capturing_popen(cmd, *args, **kwargs):
+        captured.setdefault("cmd", list(cmd))
+        return real_popen(cmd, *args, **kwargs)
+
+    from panha.metadata import ffmpeg_writer
+    monkeypatch.setattr(ffmpeg_writer.subprocess, "Popen", capturing_popen)
+
+    out = tmp_path / "unchanged.mp3"
+    write_metadata(
+        sample_mp3, out,
+        Metadata(title="unchanged", cover_path=str(sample_cover)),
+    )
+
+    cmd = captured["cmd"]
+    assert "-filter:v:0" not in cmd
+    assert not any(arg.startswith("scale=") for arg in cmd)
+
+
 def test_write_metadata_force_re_encode_alone(
     sample_mp3: Path, tmp_path: Path, monkeypatch
 ):
